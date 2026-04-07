@@ -5,6 +5,8 @@ use axum::{
     routing::get,
 };
 
+mod users;
+
 async fn health_check_handler() -> impl IntoResponse {
     const MESSAGE: &str = "Simple rest API response";
 
