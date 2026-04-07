@@ -17,5 +17,7 @@ impl User {
     }
 }
 
+pub(crate) mod controller;
+
 #[cfg(test)]
 mod tests;
