@@ -1,0 +1,24 @@
+################################
+# Docker compose for PostgresSQL
+#
+# Meant to be used during development to develop against a database
+################################
+
+services:
+  db:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_PASSWORD: cvdman_dev
+      POSTGRES_USER: cvman_dev
+      POSTGRES_DB: cvman_dev
+
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
+
+
+
