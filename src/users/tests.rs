@@ -20,35 +20,11 @@ fn users_are_created_with_username_and_id() -> TestResult<()> {
     )
 }
 
-struct UserIsCreated {
-    user: User,
-}
-
-impl UserIsCreated {
-    fn new() -> Self {
-        UserIsCreated {
-            user: User::new(USER_ID, USERNAME),
-        }
-    }
-
-    fn relinquish_user(self) -> User {
-        self.user
-    }
-}
-
 const USER_ID: Uuid = Uuid::from_u128(0x1337);
 const USERNAME: &str = "username";
 
-impl Fixture for UserIsCreated {
-    fn set_up() -> TestResult<Self> {
-        Ok(UserIsCreated {
-            user: User::new(USER_ID, USERNAME),
-        })
-    }
-
-    fn tear_down(self) -> TestResult<()> {
-        Ok(())
-    }
+fn create_standard_test_user() -> User {
+    User::new(USER_ID, USERNAME)
 }
 
 /**
@@ -95,11 +71,11 @@ pub(crate) mod repository {
     #[gtest]
     #[tokio::test]
     async fn user_can_be_inserted_into_repository() -> TestResult<()> {
-        let fixture = UserIsCreated::new();
+        let user = create_standard_test_user();
         let repo = StandardRepo::new();
 
         verify_that!(
-            repo.insert(fixture.relinquish_user()).await,
+            repo.insert(user).await,
             ok(matches_pattern!(User {
                 id: eq(&USER_ID),
                 username: USERNAME,
@@ -115,7 +91,7 @@ pub(crate) mod repository {
     impl RepoExistWithAUser {
         async fn new() -> Self {
             let repo = StandardRepo::new();
-            let user = UserIsCreated::new().relinquish_user();
+            let user = create_standard_test_user();
 
             repo.insert(user.clone())
                 .await
