@@ -18,7 +18,10 @@ impl User {
     }
 }
 
-pub(crate) enum UserRepositoryError {}
+#[derive(Debug)]
+pub(crate) enum UserRepositoryError {
+    UserExist(Uuid),
+}
 
 pub(crate) trait UserRepository: Send + Sync {
     async fn insert(&self, user: User) -> Result<User, UserRepositoryError>;
