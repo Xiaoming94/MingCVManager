@@ -64,7 +64,11 @@ pub(crate) mod repository {
         }
 
         async fn find_by_id(&self, id: Uuid) -> Option<User> {
-            None
+            self.db
+                .lock()
+                .expect("Concurrent database access")
+                .get(&id)
+                .cloned()
         }
     }
 
@@ -117,5 +121,24 @@ pub(crate) mod repository {
                 &user_uuid
             ))))
         )
+    }
+
+    #[gtest]
+    #[tokio::test]
+    async fn user_can_be_quaried_by_id() -> TestResult<()> {
+        let fixture = RepoExistWithAUser::new().await;
+
+        verify_that!(
+            fixture.repo.find_by_id(fixture.existing_user.id).await,
+            some(eq(&fixture.existing_user))
+        )
+    }
+
+    #[gtest]
+    #[tokio::test]
+    async fn repository_returns_none_if_userid_is_absent() -> TestResult<()> {
+        let repo = StandardRepo::new();
+
+        verify_that!(repo.find_by_id(Uuid::now_v7()).await, none())
     }
 }

@@ -3,7 +3,7 @@ use uuid::Uuid;
 pub(crate) mod controller;
 pub(crate) mod profile;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 struct User {
     id: Uuid,
     username: String,
