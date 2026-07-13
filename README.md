@@ -43,7 +43,7 @@ For now, this project is built around supporting these out of the box top-level 
     - Various skills (As of writing this, I haven't planned whether languages should be it's own type of skill)
 
 This is the project progress. The items marked with [x] are done.
-* [] Basic user management
+* [  ] Basic user management
     * [x] A user can be created with a **id and username**
-    * [] The username and userid have to be unique
-    * [] The userid to username mapping is injective
+    * [  ] The username and userid have to be unique
+    * [  ] The userid to username mapping is injective
