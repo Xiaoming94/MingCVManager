@@ -1,67 +1,144 @@
+use googletest::prelude::*;
+use std::result::Result;
+
 use super::*;
 
-use googletest::prelude::*;
+type TestResult<T> = googletest::Result<T>;
 
 #[test]
-fn user_can_be_created_with_username_and_personal_name_and_password() -> Result<()> {
-    let username = "my_username";
-    let password = "P4ssword";
-    let personal_name = "My Real Name";
-    let my_user = User::new(
-        username.to_string(),
-        personal_name.to_string(),
-        password.to_string(),
-    );
+fn users_are_created_with_username_and_id() -> TestResult<()> {
+    let uuid = Uuid::from_u128(0x1337);
+    let username = "username";
+    let user = User::new(uuid, username);
 
     verify_that!(
-        my_user,
+        user,
         matches_pattern!(User {
-            username: eq(username),
-            personal_name: contains_substring(personal_name),
-            password: eq(password),
-            ..
+            id: eq(&uuid),
+            username: username,
         })
     )
 }
 
-struct ValidUserExists {
-    valid_user: User,
+const USER_ID: Uuid = Uuid::from_u128(0x1337);
+const USERNAME: &str = "username";
+
+fn create_standard_test_user() -> User {
+    User::new(USER_ID, USERNAME)
 }
 
-impl Fixture for ValidUserExists {
-    fn set_up() -> Result<Self> {
-        let username = "my_username";
-        let password = "P4ssword";
-        let personal_name = "My Real Name";
-        let my_user = User::new(
-            username.to_string(),
-            personal_name.to_string(),
-            password.to_string(),
-        );
+/**
+ * Repository
+ * =====
+ *
+ * Module containing test for the basic repository functionalities.
+ * Also contains a blanket implementation of a UserRepository that
+ * can be used for testing in other places where needed.
+ */
+pub(crate) mod repository {
+    use super::*;
+    use std::collections::HashMap;
+    use std::sync::Mutex;
 
-        Ok(ValidUserExists {
-            valid_user: my_user,
-        })
+    struct StandardRepo {
+        db: Mutex<HashMap<Uuid, User>>,
     }
 
-    fn tear_down(self) -> Result<()> {
-        Ok(())
+    impl StandardRepo {
+        fn new() -> Self {
+            StandardRepo {
+                db: Mutex::new(HashMap::new()),
+            }
+        }
     }
-}
 
-#[gtest]
-fn verify_user_has_a_profile_that_is_empty_when_created(
-    valid_user_fixture: &ValidUserExists,
-) -> Result<()> {
-    verify_that!(valid_user_fixture.valid_user.profile, eq(""))
-}
+    impl UserRepository for StandardRepo {
+        async fn insert(&self, user: User) -> Result<User, UserRepositoryError> {
+            let mut db = self.db.lock().unwrap();
+            return if db.contains_key(&user.id) {
+                Err(UserRepositoryError::UserExist(user.id))
+            } else {
+                db.insert(user.id, user.clone());
+                Ok(user)
+            };
+        }
 
-#[gtest]
-fn verify_user_can_change_their_profile_text(valid_user_fixture: &ValidUserExists) -> Result<()> {
-    let mut local_user = valid_user_fixture.valid_user.clone();
+        async fn find_by_id(&self, id: Uuid) -> Option<User> {
+            self.db
+                .lock()
+                .expect("Concurrent database access")
+                .get(&id)
+                .cloned()
+        }
+    }
 
-    let profile_text = "New user profile";
-    local_user.profile = String::from(profile_text);
-    verify_that!(local_user.profile, not(eq("")))?;
-    verify_that!(local_user.profile, contains_substring(profile_text))
+    #[gtest]
+    #[tokio::test]
+    async fn user_can_be_inserted_into_repository() -> TestResult<()> {
+        let user = create_standard_test_user();
+        let repo = StandardRepo::new();
+
+        verify_that!(
+            repo.insert(user).await,
+            ok(matches_pattern!(User {
+                id: eq(&USER_ID),
+                username: USERNAME,
+            }))
+        )
+    }
+
+    struct RepoExistWithAUser {
+        repo: StandardRepo,
+        existing_user: User,
+    }
+
+    impl RepoExistWithAUser {
+        async fn new() -> Self {
+            let repo = StandardRepo::new();
+            let user = create_standard_test_user();
+
+            repo.insert(user.clone())
+                .await
+                .expect("Fixture setup: first insert should succeed");
+
+            RepoExistWithAUser {
+                repo,
+                existing_user: user,
+            }
+        }
+    }
+
+    #[gtest]
+    #[tokio::test]
+    async fn cannot_insert_user_if_uuid_exists() -> TestResult<()> {
+        let fixture = RepoExistWithAUser::new().await;
+        let user = fixture.existing_user.clone();
+        let user_uuid = user.id;
+
+        verify_that!(
+            fixture.repo.insert(user).await,
+            err(matches_pattern!(UserRepositoryError::UserExist(eq(
+                &user_uuid
+            ))))
+        )
+    }
+
+    #[gtest]
+    #[tokio::test]
+    async fn user_can_be_quaried_by_id() -> TestResult<()> {
+        let fixture = RepoExistWithAUser::new().await;
+
+        verify_that!(
+            fixture.repo.find_by_id(fixture.existing_user.id).await,
+            some(eq(&fixture.existing_user))
+        )
+    }
+
+    #[gtest]
+    #[tokio::test]
+    async fn repository_returns_none_if_userid_is_absent() -> TestResult<()> {
+        let repo = StandardRepo::new();
+
+        verify_that!(repo.find_by_id(Uuid::now_v7()).await, none())
+    }
 }
