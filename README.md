@@ -28,3 +28,22 @@ $ cargo test --features integration
 ```
 
 This will change though shortly once database integration is upstream
+
+## Project roadmap
+
+For now, this project is built around supporting these out of the box top-level features:
+- User management with Oauth authentication
+- Postgres database
+- Each users have a profile with
+    - Basic information such as a personal name
+    - Contact information like email, phone number, and links.
+- Each user also have multiple curricular items, this include:
+    - Education
+    - Work Experience
+    - Various skills (As of writing this, I haven't planned whether languages should be it's own type of skill)
+
+This is the project progress. The items marked with [x] are done.
+* [] Basic user management
+    * [x] A user can be created with a **id and username**
+    * [] The username and userid have to be unique
+    * [] The userid to username mapping is injective
