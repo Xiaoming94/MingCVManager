@@ -13,3 +13,18 @@ As a bonus, the goal is also for this project to create one or two CVs I will ac
 
 Clone and build the project. The entire thing is meant to be executed as a cargo project.
 Beware though, right now, this thing is just a barebone axum app.
+
+## Running the tests
+
+This project uses the `googletest-rust`  framework for testing.
+To run the unit test, execute:
+```sh
+$ cargo test
+```
+
+For integration tests, you currently only have to run
+```sh
+$ cargo test --features integration
+```
+
+This will change though shortly once database integration is upstream
