@@ -23,7 +23,7 @@ pub(crate) enum UserRepositoryError {
     UserExist(Uuid),
 }
 
-pub(crate) trait UserRepository: Send + Sync {
+trait UserRepository: Send + Sync {
     async fn insert(&self, user: User) -> Result<User, UserRepositoryError>;
     async fn find_by_id(&self, id: Uuid) -> Option<User>;
 }
